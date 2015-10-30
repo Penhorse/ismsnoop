@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.0)
+
+project(library)
+
+include(../SetupProject.cmake)
+
+list(APPEND
+	headers_public
+	ismsnoop
+)
+
+list(APPEND
+	src
+	ismsnoop
+)
+
+foreach(x ${headers_public})
+	list(APPEND headers_public_files ${dir_inc}/ismsnoop/${x}.h)
+endforeach()
+
+foreach(x ${src})
+	list(APPEND src_files ${dir_src}/${x}.cpp)
+endforeach()
+
+add_library(ismsnoop SHARED ${headers_public_files} ${src_files})
+
+include_directories(${dir_inc})
