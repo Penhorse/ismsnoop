@@ -1,0 +1,6 @@
+LIBRARY ismsnoop
+EXPORTS
+	ismsnoop_open @1
+	ismsnoop_close @2
+	ismsnoop_get_panel_icon_size @3
+	ismsnoop_get_panel_icon_bytes @4

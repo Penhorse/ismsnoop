@@ -22,6 +22,10 @@ foreach(x ${src})
 	list(APPEND src_files ${dir_src}/${x}.cpp)
 endforeach()
 
+if(${system} STREQUAL Windows)
+	list(APPEND src_files ${dir_src}/exports.def)
+endif()
+
 add_library(ismsnoop SHARED ${headers_public_files} ${src_files})
 
 include_directories(${dir_inc})
