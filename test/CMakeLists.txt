@@ -8,17 +8,8 @@ set(dir_bin_isms ${dir_bin}/${CMAKE_CFG_INTDIR}/isms)
 
 list(APPEND
 	cpp
-	library
 	main
 )
-
-if(${system} STREQUAL Linux)
-	list(APPEND cpp library_unix)
-elseif(${system} STREQUAL OSX)
-	list(APPEND cpp library_unix)
-elseif(${system} STREQUAL Windows)
-	list(APPEND cpp library_windows)
-endif()
 
 file(GLOB isms
 	${CMAKE_CURRENT_SOURCE_DIR}/isms/*.ism
@@ -53,3 +44,4 @@ if(${system} STREQUAL Linux OR ${system} STREQUAL OSX)
 endif()
 
 include_directories(../library/include)
+include_directories(../submodules/rtw/include)

@@ -3,9 +3,8 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
-#include "ismsnoop/ismsnoop.h"
-
-#include "library.h"
+#include <ismsnoop/ismsnoop.h>
+#include <rtw/dynamic_library.hpp>
 
 using Sig_ismsnoop_open = ISMSnoopInstrument*(const char*);
 using Sig_ismsnoop_close = void(ISMSnoopInstrument*);
@@ -14,7 +13,7 @@ using Sig_ismsnoop_get_panel_icon_bytes = void(ISMSnoopInstrument*, char*);
 
 SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 {
-	Library lib_ismsnoop(Library::get_filename("ismsnoop"));
+	rtw::DynamicLibrary lib_ismsnoop(rtw::dylib::get_filename("ismsnoop"));
 
 	WHEN("the library is loaded")
 	{
