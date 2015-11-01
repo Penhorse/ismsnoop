@@ -19,7 +19,6 @@ struct ISMSnoopInstrument
 };
 
 const auto MAGIC_BYTE = 341;
-//const auto PANEL_ICON_FILE_NAME_LENGTH_BYTE = 349;
 
 template <class T>
 T swap_endian(T x)
@@ -37,57 +36,114 @@ T swap_endian(T x)
 	return result;
 }
 
-static bool looks_like_a_background_image(const std::vector<uint32_t> & chunk, int * file_name_length_idx)
+
+enum class DataType
 {
-	if (chunk[0] == 0
-		&& chunk[1] == 0
-		&& chunk[2] == 0
-		&& chunk[3] == 9
-		&& chunk[4] == 2
-		&& chunk[5] == 11
-		&& chunk[11] == 0
-		&& chunk[12] == 0
-		&& chunk[13] == 1
-		&& chunk[15] == 1)
+	None = 0,
+	BackgroundImage,
+	InfoText,
+};
+
+static bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next)
+{
+	if (buffer[0] == 65536
+		&& buffer[1] == 65536
+		&& buffer[2] == 1
+		&& buffer[3] == 11
+		&& buffer[4] == 0
+		&& buffer[6] == buffer[5]
+		&& buffer[7] == buffer[5]
+		&& buffer[8] == buffer[5])
 	{
-		*file_name_length_idx = 16;
+		*next = 14;
 		return true;
 	}
 
-	if (chunk[0] == 0
-		&& chunk[1] == 0
-		&& chunk[2] == 0
-		&& chunk[3] == 0
-		&& chunk[4] == 65536
-		&& chunk[5] == 65536
-		&& chunk[6] == 1
-		&& chunk[7] == 11
-		&& chunk[8] == 0
-		&& chunk[10] == chunk[9]
-		&& chunk[11] == chunk[9]
-		&& chunk[12] == chunk[9]
-		&& chunk[17] == 1)
+	if (buffer[0] == 0
+		&& buffer[1] == 0
+		&& buffer[2] == 0
+		&& buffer[3] == 9
+		&& buffer[4] == 2
+		&& buffer[5] == 11
+		&& buffer[11] == 0
+		&& buffer[12] == 0
+		&& buffer[13] == 1
+		&& buffer[15] == 1)
 	{
-		*file_name_length_idx = 18;
+		*next = 16;
 		return true;
 	}
 
 	return false;
 }
 
-static bool looks_like_the_info_text(const std::vector<uint32_t> & chunk)
+static bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
 {
-	if (chunk[0] == 0
-		&& chunk[1] == 0
-		&& chunk[2] == 0
-		&& chunk[3] == 131072
-		&& chunk[4] == 16842752
-		&& chunk[5] == 16843009)
+	if (buffer[0] == 0
+		&& buffer[1] == 0
+		&& buffer[2] == 0
+		&& buffer[3] == 131072
+		&& buffer[4] == 16842752
+		&& buffer[5] == 16843009)
 	{
+		*next = 9;
 		return true;
 	}
 
 	return false;
+}
+
+DataType find_data(std::ifstream & ifs, int byte_offset)
+{
+	ifs.seekg(byte_offset, std::ios::cur);
+
+	auto start = ifs.tellg();
+
+	std::vector<uint32_t> buffer;
+
+	for (int i = 0; i < 128; i++)
+	{
+		uint32_t x;
+		ifs.read((char*)(&x), 4);
+		buffer.push_back(x);
+	}
+
+	while (buffer.size() > 15)
+	{
+		int next = 0;
+
+		if (looks_like_a_background_image(buffer, &next))
+		{
+			ifs.seekg(start + (std::streampos((next * 4) + ((128 - buffer.size()) * 4))), std::ios::beg);
+			return DataType::BackgroundImage;
+		}
+
+		if (looks_like_the_info_text(buffer, &next))
+		{
+			ifs.seekg(start + (std::streampos((next * 4) + ((128 - buffer.size()) * 4))), std::ios::beg);
+			return DataType::InfoText;
+		}
+
+		buffer.erase(buffer.begin());
+	}
+
+	return DataType::None;
+}
+
+DataType find_data(std::ifstream & ifs)
+{
+	const auto start = ifs.tellg();
+
+	DataType result = find_data(ifs, 0);
+
+	if (result == DataType::None)
+	{
+		ifs.seekg(start, std::ios::beg);
+
+		result = find_data(ifs, 2);
+	}
+
+	return result;
 }
 
 ISMSnoopInstrument * ismsnoop_open(const char * path)
@@ -158,86 +214,68 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 		}
 	}
 
-	std::vector<uint32_t> chunk;
+	DataType data_type;
 
-	for (int i = 0; i < 19; i++)
+	while ((data_type = find_data(ifs)) != DataType::None)
 	{
-		uint32_t x;
-		ifs.read((char*)(&x), 4);
-		chunk.push_back(x);
-	}
-
-	int file_name_length_idx;
-
-	int num_bg_images = 0;
-
-	while (looks_like_a_background_image(chunk, &file_name_length_idx))
-	{
-		uint32_t file_name_length = chunk[file_name_length_idx];
-
-		if (file_name_length_idx == 16)
+		switch (data_type)
 		{
-			ifs.seekg(37 + file_name_length, std::ios::cur);
+			case DataType::BackgroundImage:
+			{
+				auto g = ifs.tellg();
+
+				std::vector<unsigned char> xs;
+
+				for (int i = 0; i < 100; i++)
+				{
+					char x;
+					ifs.get(x);
+					unsigned char ux = x;
+					xs.push_back(ux);
+				}
+
+				ifs.seekg(g, std::ios::beg);
+
+				uint32_t file_name_length;
+
+				ifs.read((char*)(&file_name_length), 4);
+
+				ifs.seekg(45 + file_name_length, std::ios::cur);
+
+				uint16_t width, height, depth;
+
+				ifs.read((char*)(&width), 2);
+				ifs.read((char*)(&height), 2);
+				ifs.read((char*)(&depth), 2);
+
+				const auto channels = depth / 8;
+				const auto image_size = width * height * channels;
+
+				ifs.seekg(image_size, std::ios::cur);
+
+				break;
+			}
+
+			case DataType::InfoText:
+			{
+				uint32_t name_length;
+
+				ifs.read((char*)(&name_length), 4);
+
+				std::vector<char> buffer(name_length);
+
+				ifs.read(buffer.data(), name_length);
+
+				result->name = std::string(buffer.begin(), buffer.end());
+
+				return result;
+			}
+
+			default:
+			{
+				break;
+			}
 		}
-
-		if (file_name_length_idx == 18)
-		{
-			ifs.seekg(45 + file_name_length, std::ios::cur);
-		}
-
-		uint16_t width, height, depth;
-
-		ifs.read((char*)(&width), 2);
-		ifs.read((char*)(&height), 2);
-		ifs.read((char*)(&depth), 2);
-
-		const auto channels = depth / 8;
-		const auto image_size = width * height * channels;
-
-		ifs.seekg(image_size, std::ios::cur);
-		ifs.seekg(2, std::ios::cur);
-
-		num_bg_images++;
-
-		chunk.clear();
-
-		for (int i = 0; i < 19; i++)
-		{
-			uint32_t x;
-			ifs.read((char*)(&x), 4);
-			chunk.push_back(x);
-		}
-	}
-
-	if (num_bg_images == 1)
-	{
-		ifs.seekg(2, std::ios::cur);
-		chunk.clear();
-
-		for (int i = 0; i < 10; i++)
-		{
-			uint32_t x;
-			ifs.read((char*)(&x), 4);
-			chunk.push_back(x);
-		}
-	}
-	else
-	{
-		chunk.erase(chunk.begin());
-		ifs.seekg(-32, std::ios::cur);
-	}
-
-	int name_length_idx;
-
-	if (looks_like_the_info_text(chunk))
-	{
-		const auto name_length = chunk[9];
-
-		std::vector<char> buffer(name_length);
-
-		ifs.read(buffer.data(), name_length);
-
-		result->name = std::string(buffer.begin(), buffer.end());
 	}
 
 	return result;
