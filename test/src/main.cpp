@@ -33,6 +33,33 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 
 			AND_THEN("a test ism can be opened")
 			{
+				const auto ism_test = ismsnoop_open("isms/1 In 2 Out Switch.ism");
+
+				REQUIRE(ism_test);
+
+				ismsnoop_close(ism_test);
+			}
+
+			AND_THEN("a test ism can be opened")
+			{
+				const auto ism_test = ismsnoop_open("isms/Acid Filter.ism");
+
+				REQUIRE(ism_test);
+
+				ismsnoop_close(ism_test);
+			}
+
+			AND_THEN("a test ism can be opened")
+			{
+				const auto ism_test = ismsnoop_open("isms/Thrasher v1.1.ism");
+
+				REQUIRE(ism_test);
+
+				ismsnoop_close(ism_test);
+			}
+
+			AND_THEN("another ism can be opened")
+			{
 				const auto ism_test = ismsnoop_open("isms/WAYO-WAYO v1.2.ism");
 
 				REQUIRE(ism_test);
@@ -50,6 +77,8 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 
 				ismsnoop_close(ism_test);
 			}
+
+
 		}
 	}
 }
