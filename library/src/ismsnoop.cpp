@@ -21,23 +21,6 @@ struct ISMSnoopInstrument
 
 const auto MAGIC_BYTE = 341;
 
-template <class T>
-T swap_endian(T x)
-{
-	T result;
-
-	unsigned char *dst = (unsigned char *)(&result);
-	unsigned char *src = (unsigned char *)(&x);
-
-	for(unsigned int i = 0; i < sizeof(T); i++)
-	{
-		dst[i] = src[sizeof(T) - 1 - i];
-	}
-
-	return result;
-}
-
-
 enum class DataType
 {
 	None = 0,
