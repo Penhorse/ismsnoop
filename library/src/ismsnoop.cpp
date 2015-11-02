@@ -1,5 +1,6 @@
 #include "ismsnoop/ismsnoop.h"
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <vector>
