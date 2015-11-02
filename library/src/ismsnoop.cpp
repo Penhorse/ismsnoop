@@ -223,20 +223,6 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 		{
 			case DataType::BackgroundImage:
 			{
-				auto g = ifs.tellg();
-
-				std::vector<unsigned char> xs;
-
-				for (int i = 0; i < 100; i++)
-				{
-					char x;
-					ifs.get(x);
-					unsigned char ux = x;
-					xs.push_back(ux);
-				}
-
-				ifs.seekg(g, std::ios::beg);
-
 				uint32_t file_name_length;
 
 				ifs.read((char*)(&file_name_length), 4);
