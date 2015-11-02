@@ -5,18 +5,15 @@
 #include <iostream>
 #include <vector>
 
-struct ISMSnoopInstrumentImage
+namespace ismsnoop
+{
+	
+struct InstrumentImage
 {
 	int width;
 	int height;
 	int depth;
 	std::vector<char> bytes;
-};
-
-struct ISMSnoopInstrument
-{
-	ISMSnoopInstrumentImage panel_icon;
-	std::string name;
 };
 
 const auto MAGIC_BYTE = 341;
@@ -77,7 +74,7 @@ static bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int *
 	return false;
 }
 
-DataType find_data(std::ifstream & ifs, int byte_offset)
+static DataType find_data(std::ifstream & ifs, int byte_offset)
 {
 	ifs.seekg(byte_offset, std::ios::cur);
 
@@ -114,7 +111,7 @@ DataType find_data(std::ifstream & ifs, int byte_offset)
 	return DataType::None;
 }
 
-DataType find_data(std::ifstream & ifs)
+static DataType find_data(std::ifstream & ifs)
 {
 	const auto start = ifs.tellg();
 
@@ -128,6 +125,24 @@ DataType find_data(std::ifstream & ifs)
 	}
 
 	return result;
+}
+
+} // namespace ismsnoop
+
+using namespace ismsnoop;
+
+struct ISMSnoopInstrument
+{
+	InstrumentImage panel_icon;
+	std::string name;
+};
+
+void ismsnoop_library_version(int * major, int * minor, int * patch, int * tweak)
+{
+	if(major) *major = PROJECT_VERSION_MAJOR;
+	if(minor) *minor = PROJECT_VERSION_MINOR;
+	if(patch) *patch = PROJECT_VERSION_PATCH;
+	if(tweak) *tweak = PROJECT_VERSION_TWEAK;
 }
 
 ISMSnoopInstrument * ismsnoop_open(const char * path)

@@ -5,6 +5,7 @@ struct ISMSnoopInstrument;
 extern "C"
 {
 
+void ismsnoop_library_version(int * major, int * minor, int * patch, int * tweak);
 ISMSnoopInstrument * ismsnoop_open(const char * path);
 void ismsnoop_close(ISMSnoopInstrument * instrument);
 void ismsnoop_get_panel_icon_size(ISMSnoopInstrument * instrument, int * width, int * height, int * depth);

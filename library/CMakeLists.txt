@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(library)
+project(library VERSION 1.0.0.0)
 
 include(../SetupProject.cmake)
 
