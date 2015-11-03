@@ -5,3 +5,4 @@ EXPORTS
 	ismsnoop_get_panel_icon_size @3
 	ismsnoop_get_panel_icon_bytes @4
 	ismsnoop_get_name @5
+	ismsnoop_library_version @6
