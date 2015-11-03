@@ -78,18 +78,6 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 
 				ismsnoop_close(ism_test);
 			}
-			
-			AND_WHEN("we try to open '?  MIRROR.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/?  MIRROR.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				ismsnoop_close(ism_test);
-			}
 		}
 	}
 }
