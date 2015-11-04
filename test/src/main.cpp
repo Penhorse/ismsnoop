@@ -31,56 +31,53 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 			REQUIRE(ismsnoop_get_panel_icon_size);
 			REQUIRE(ismsnoop_get_panel_icon_bytes);
 
-			AND_THEN("a test ism can be opened")
+			AND_WHEN("we try to open '1 In 2 Out Switch.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/1 In 2 Out Switch.ism");
 
-				REQUIRE(ism_test);
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
 
 				ismsnoop_close(ism_test);
 			}
 
-			AND_THEN("a test ism can be opened")
+			AND_WHEN("we try to open 'Acid Filter.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/Acid Filter.ism");
 
-				REQUIRE(ism_test);
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
 
 				ismsnoop_close(ism_test);
 			}
 
-			AND_THEN("a test ism can be opened")
+			AND_WHEN("we try to open 'Thrasher v1.1.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/Thrasher v1.1.ism");
 
-				REQUIRE(ism_test);
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
 
 				ismsnoop_close(ism_test);
 			}
 
-			AND_THEN("another ism can be opened")
+			AND_WHEN("we try to open 'OSC-Bargain Pulse.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/OSC-Bargain Pulse.ism");
 
-				REQUIRE(ism_test);
-
-				/*
-				AND_THEN("the panel icon size is correct")
+				THEN("it opens successfully")
 				{
-					int width = 0, height = 0, depth = 0;
-
-					ismsnoop_get_panel_icon_size(ism_test, &width, &height, &depth);
-
-					REQUIRE(width == 115);
-					REQUIRE(height == 82);
-					REQUIRE(depth == 32);
+					REQUIRE(ism_test);
 				}
-				*/
 
 				ismsnoop_close(ism_test);
 			}
-
-
 		}
 	}
 }

@@ -21,6 +21,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(system Windows)
 	set(compiler_flags "/EHsc /MP")
+	set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
+	set(CMAKE_CXX_FLAGS_RELEASE "/MT")
 endif()
 
 set(CMAKE_CXX_FLAGS "${compiler_flags}")
