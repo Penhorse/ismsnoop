@@ -1,3 +1,6 @@
 [submodule "submodules/rtw"]
 	path = submodules/rtw
 	url = https://github.com/Penhorse/rtw.git
+[submodule "submodules/catch"]
+	path = submodules/catch
+	url = https://github.com/philsquared/Catch.git

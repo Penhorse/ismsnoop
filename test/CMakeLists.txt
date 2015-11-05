@@ -45,3 +45,4 @@ endif()
 
 include_directories(../library/include)
 include_directories(../submodules/rtw/include)
+include_directories(../submodules/catch/single_include)
