@@ -42,9 +42,9 @@ static bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, 
 
 	if (buffer[0] == 0
 		&& buffer[1] == 0
-		&& buffer[2] == 0
-		&& buffer[3] == 9
-		&& buffer[4] == 2
+		&& (buffer[2] == 0 || buffer[2] == 65536)
+		&& (buffer[3] == 9 || buffer[3] == 65536)
+		&& (buffer[4] == 2 || buffer[4] == 257)
 		&& buffer[5] == 11
 		&& buffer[11] == 0
 		&& buffer[12] == 0
@@ -215,8 +215,10 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 
 	DataType data_type;
 
+	//while (!ifs.eof())
 	while ((data_type = find_data(ifs)) != DataType::None)
 	{
+		//data_type = find_data(ifs);
 		switch (data_type)
 		{
 			case DataType::BackgroundImage:
