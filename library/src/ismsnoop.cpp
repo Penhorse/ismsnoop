@@ -321,8 +321,6 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 		return nullptr;
 	}
 
-	const auto file_version = read_file_version(ifs);
-
 	const auto handler = make_handler(read_file_version(ifs));
 
 	handler->find_panel_icon(ifs);
