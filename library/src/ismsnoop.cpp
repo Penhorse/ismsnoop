@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 namespace ismsnoop
@@ -35,7 +36,30 @@ enum class FileVersion
 	Unknown,
 };
 
-static bool looks_like_a_background_image_r600(const std::vector<uint32_t> & buffer, int * next)
+struct VersionHandler
+{
+	virtual bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) = 0;
+	virtual bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) = 0;
+	virtual void find_panel_icon(std::ifstream & ifs) = 0;
+};
+
+struct R600Handler : public VersionHandler
+{
+	bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) override;
+	bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) override;
+	void find_panel_icon(std::ifstream & ifs) override;
+};
+
+struct R603Handler : public VersionHandler
+{
+	bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) override;
+	bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) override;
+	void find_panel_icon(std::ifstream & ifs) override;
+};
+
+using LatestHandler = R603Handler;
+
+bool R600Handler::looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next)
 {
 	if (buffer[0] == 65536
 		&& buffer[1] == 65536
@@ -68,7 +92,28 @@ static bool looks_like_a_background_image_r600(const std::vector<uint32_t> & buf
 	return false;
 }
 
-static bool looks_like_a_background_image_r603(const std::vector<uint32_t> & buffer, int * next)
+bool R600Handler::looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
+{
+	if (buffer[0] == 0
+		&& buffer[1] == 0
+		&& buffer[2] == 0
+		&& buffer[3] == 131072
+		&& buffer[4] == 16842752
+		&& buffer[5] == 16843009)
+	{
+		*next = 9;
+		return true;
+	}
+
+	return false;
+}
+
+void R600Handler::find_panel_icon(std::ifstream & ifs)
+{
+	ifs.seekg(R600_START, std::ios::beg);
+}
+
+bool R603Handler::looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next)
 {
 	if (buffer[0] == 65536
 		&& buffer[1] == 65536
@@ -100,33 +145,7 @@ static bool looks_like_a_background_image_r603(const std::vector<uint32_t> & buf
 	return false;
 }
 
-static bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next, FileVersion file_version)
-{
-	switch (file_version)
-	{
-		case FileVersion::R600: return looks_like_a_background_image_r600(buffer, next);
-		case FileVersion::R603: return looks_like_a_background_image_r603(buffer, next);
-		default: return false;
-	}
-}
-
-static bool looks_like_the_info_text_r600(const std::vector<uint32_t> & buffer, int * next)
-{
-	if (buffer[0] == 0
-		&& buffer[1] == 0
-		&& buffer[2] == 0
-		&& buffer[3] == 131072
-		&& buffer[4] == 16842752
-		&& buffer[5] == 16843009)
-	{
-		*next = 9;
-		return true;
-	}
-
-	return false;
-}
-
-static bool looks_like_the_info_text_r603(const std::vector<uint32_t> & buffer, int * next)
+bool R603Handler::looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
 {
 	if (buffer[0] == 262144
 		&& buffer[1] == 524288
@@ -142,17 +161,12 @@ static bool looks_like_the_info_text_r603(const std::vector<uint32_t> & buffer, 
 	return false;
 }
 
-static bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next, FileVersion file_version)
+void R603Handler::find_panel_icon(std::ifstream & ifs)
 {
-	switch (file_version)
-	{
-		case FileVersion::R600: return looks_like_the_info_text_r600(buffer, next);
-		case FileVersion::R603: return looks_like_the_info_text_r603(buffer, next);
-		default: return false;
-	}
+	ifs.seekg(R603_START, std::ios::beg);
 }
 
-static DataType find_data(std::ifstream & ifs, int byte_offset, FileVersion file_version)
+static DataType find_data(std::ifstream & ifs, int byte_offset, std::shared_ptr<VersionHandler> handler)
 {
 	ifs.seekg(byte_offset, std::ios::cur);
 
@@ -171,13 +185,13 @@ static DataType find_data(std::ifstream & ifs, int byte_offset, FileVersion file
 	{
 		int next = 0;
 
-		if (looks_like_a_background_image(buffer, &next, file_version))
+		if (handler->looks_like_a_background_image(buffer, &next))
 		{
 			ifs.seekg(start + (std::streampos((next * 4) + ((128 - buffer.size()) * 4))), std::ios::beg);
 			return DataType::BackgroundImage;
 		}
 
-		if (looks_like_the_info_text(buffer, &next, file_version))
+		if (handler->looks_like_the_info_text(buffer, &next))
 		{
 			ifs.seekg(start + (std::streampos((next * 4) + ((128 - buffer.size()) * 4))), std::ios::beg);
 			return DataType::InfoText;
@@ -189,17 +203,17 @@ static DataType find_data(std::ifstream & ifs, int byte_offset, FileVersion file
 	return DataType::None;
 }
 
-static DataType find_data(std::ifstream & ifs, FileVersion file_version)
+static DataType find_data(std::ifstream & ifs, std::shared_ptr<VersionHandler> handler)
 {
 	const auto start = ifs.tellg();
 
-	DataType result = find_data(ifs, 0, file_version);
+	DataType result = find_data(ifs, 0, handler);
 
 	if (result == DataType::None)
 	{
 		ifs.seekg(start, std::ios::beg);
 
-		result = find_data(ifs, 2, file_version);
+		result = find_data(ifs, 2, handler);
 	}
 
 	return result;
@@ -274,14 +288,19 @@ InstrumentImage read_panel_icon(std::ifstream & ifs)
 	return result;
 }
 
-void find_panel_icon_r600(std::ifstream & ifs)
+std::shared_ptr<VersionHandler> make_handler(FileVersion file_version)
 {
-	ifs.seekg(R600_START, std::ios::beg);
-}
-
-void find_panel_icon_r603(std::ifstream & ifs)
-{
-	ifs.seekg(R603_START, std::ios::beg);
+	switch (file_version)
+	{
+		case FileVersion::R600:
+		{
+			return std::shared_ptr<VersionHandler>(new R600Handler);
+		}
+		default:
+		{
+			return std::shared_ptr<VersionHandler>(new LatestHandler);
+		}
+	}
 }
 
 ISMSnoopInstrument * ismsnoop_open(const char * path)
@@ -304,23 +323,9 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 
 	const auto file_version = read_file_version(ifs);
 
-	switch (file_version)
-	{
-		case FileVersion::R600:
-		{
-			find_panel_icon_r600(ifs);
-			break;
-		}
-		case FileVersion::R603:
-		{
-			find_panel_icon_r603(ifs);
-			break;
-		}
-		case FileVersion::Unknown:
-		{
-			return nullptr;
-		}
-	}
+	const auto handler = make_handler(read_file_version(ifs));
+
+	handler->find_panel_icon(ifs);
 
 	const auto result = new ISMSnoopInstrument();
 
@@ -347,7 +352,7 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 	DataType data_type;
 
 	//while (!ifs.eof())
-	while ((data_type = find_data(ifs, file_version)) != DataType::None)
+	while ((data_type = find_data(ifs, handler)) != DataType::None)
 	{
 		//data_type = find_data(ifs);
 		switch (data_type)
