@@ -34,6 +34,7 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 			REQUIRE(ismsnoop_get_panel_icon_bytes);
 			REQUIRE(ismsnoop_get_name);
 			
+			/*
 			AND_WHEN("we try to open '1 In 2 Out Switch.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/1 In 2 Out Switch.ism");
@@ -142,6 +143,128 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 
 				ismsnoop_close(ism_test);
 			}
+			*/
+			AND_WHEN("we try to open 'SA MiniVerb v.1.2a.ism'")
+			{
+				const auto ism_test = ismsnoop_open("isms/SA MiniVerb v.1.2a.ism");
+
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
+
+				AND_THEN("we can retrieve the name")
+				{
+					int length;
+
+					ismsnoop_get_name(ism_test, nullptr, &length);
+
+					const auto c_name = new char[length + 1];
+
+					ismsnoop_get_name(ism_test, c_name, &length);
+
+					std::string name(c_name);
+
+					delete[] c_name;
+
+					REQUIRE(name == "SA MiniVerb");
+
+				}
+
+				ismsnoop_close(ism_test);
+			}
+
+			AND_WHEN("we try to open 'SA_MidSide_v.1.1.ism'")
+			{
+				const auto ism_test = ismsnoop_open("isms/SA_MidSide_v.1.1.ism");
+
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
+
+				AND_THEN("we can retrieve the name")
+				{
+					int length;
+
+					ismsnoop_get_name(ism_test, nullptr, &length);
+
+					const auto c_name = new char[length + 1];
+
+					ismsnoop_get_name(ism_test, c_name, &length);
+
+					std::string name(c_name);
+
+					delete[] c_name;
+
+					REQUIRE(name == "SA Mid/Side");
+
+				}
+
+				ismsnoop_close(ism_test);
+			}
+
+			AND_WHEN("we try to open 'BND v1.0.ism'")
+			{
+				const auto ism_test = ismsnoop_open("isms/BND v1.0.ism");
+
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
+
+				AND_THEN("we can retrieve the name")
+				{
+					int length;
+
+					ismsnoop_get_name(ism_test, nullptr, &length);
+
+					const auto c_name = new char[length + 1];
+
+					ismsnoop_get_name(ism_test, c_name, &length);
+
+					std::string name(c_name);
+
+					delete[] c_name;
+
+					REQUIRE(name == "BND");
+
+				}
+
+				ismsnoop_close(ism_test);
+			}
+
+
+			AND_WHEN("we try to open 'Metaverb Red.ism'")
+			{
+				const auto ism_test = ismsnoop_open("isms/Metaverb Red.ism");
+
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
+
+				AND_THEN("we can retrieve the name")
+				{
+					int length;
+
+					ismsnoop_get_name(ism_test, nullptr, &length);
+
+					const auto c_name = new char[length + 1];
+
+					ismsnoop_get_name(ism_test, c_name, &length);
+
+					std::string name(c_name);
+
+					delete[] c_name;
+
+					REQUIRE(name == "Metaverb Red");
+
+				}
+
+				ismsnoop_close(ism_test);
+			}
 		}
+		
 	}
 }
