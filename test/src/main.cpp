@@ -144,6 +144,35 @@ SCENARIO("ism files can be opened and information can be retrieved", "[test]")
 				ismsnoop_close(ism_test);
 			}
 			*/
+			AND_WHEN("we try to open 'Fold.ism'")
+			{
+				const auto ism_test = ismsnoop_open("isms/Fold.ism");
+
+				THEN("it opens successfully")
+				{
+					REQUIRE(ism_test);
+				}
+
+				AND_THEN("we can retrieve the name")
+				{
+					int length;
+
+					ismsnoop_get_name(ism_test, nullptr, &length);
+
+					const auto c_name = new char[length + 1];
+
+					ismsnoop_get_name(ism_test, c_name, &length);
+
+					std::string name(c_name);
+
+					delete[] c_name;
+
+					REQUIRE(name == "Folds");
+
+				}
+
+				ismsnoop_close(ism_test);
+			}
 			AND_WHEN("we try to open 'SA MiniVerb v.1.2a.ism'")
 			{
 				const auto ism_test = ismsnoop_open("isms/SA MiniVerb v.1.2a.ism");
