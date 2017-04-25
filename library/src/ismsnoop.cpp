@@ -1,175 +1,17 @@
 #include "ismsnoop/ismsnoop.h"
+#include "data_type.h"
+#include "file_version.h"
+#include "handlers.h"
+#include "instrument_image.h"
 
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <memory>
-#include <vector>
 
 namespace ismsnoop
 {
-	
-struct InstrumentImage
-{
-	int width;
-	int height;
-	int depth;
-	std::vector<char> bytes;
-};
 
-const auto VERSION_INFO = 0x25;
-const auto R600_START = 341;
-const auto R603_START = 0x153;
-
-enum class DataType
-{
-	None = 0,
-	BackgroundImage,
-	InfoText,
-};
-
-enum class FileVersion
-{
-	R600,
-	R603,
-	Latest = R603,
-	Unknown,
-};
-
-struct VersionHandler
-{
-	virtual bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) = 0;
-	virtual bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) = 0;
-	virtual void find_panel_icon(std::ifstream & ifs) = 0;
-};
-
-struct R600Handler : public VersionHandler
-{
-	bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) override;
-	bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) override;
-	void find_panel_icon(std::ifstream & ifs) override;
-};
-
-struct R603Handler : public VersionHandler
-{
-	bool looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next) override;
-	bool looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next) override;
-	void find_panel_icon(std::ifstream & ifs) override;
-};
-
-using LatestHandler = R603Handler;
-
-bool R600Handler::looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next)
-{
-	if (buffer[0] == 65536
-		&& buffer[1] == 65536
-		&& buffer[2] == 1
-		&& buffer[3] == 11
-		&& buffer[4] == 0
-		&& buffer[6] == buffer[5]
-		&& buffer[7] == buffer[5]
-		&& buffer[8] == buffer[5])
-	{
-		*next = 14;
-		return true;
-	}
-
-	if (buffer[0] == 0
-		&& buffer[1] == 0
-		&& (buffer[2] == 0 || buffer[2] == 65536)
-		&& (buffer[3] == 9 || buffer[3] == 65536)
-		&& (buffer[4] == 2 || buffer[4] == 257)
-		&& buffer[5] == 11
-		&& buffer[11] == 0
-		&& buffer[12] == 0
-		&& buffer[13] == 1
-		&& buffer[15] == 1)
-	{
-		*next = 16;
-		return true;
-	}
-
-	return false;
-}
-
-bool R600Handler::looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
-{
-	if (buffer[0] == 0
-		&& buffer[1] == 0
-		&& buffer[2] == 0
-		&& buffer[3] == 131072
-		&& buffer[4] == 16842752
-		&& buffer[5] == 16843009)
-	{
-		*next = 9;
-		return true;
-	}
-
-	return false;
-}
-
-void R600Handler::find_panel_icon(std::ifstream & ifs)
-{
-	ifs.seekg(R600_START, std::ios::beg);
-}
-
-bool R603Handler::looks_like_a_background_image(const std::vector<uint32_t> & buffer, int * next)
-{
-	if (buffer[0] == 65536
-		&& buffer[1] == 65536
-		&& buffer[2] == 1
-		&& buffer[3] == 11
-		&& buffer[4] == 0
-		&& buffer[6] == buffer[5]
-		&& buffer[7] == buffer[5]
-		&& buffer[8] == buffer[5]
-		&& buffer[9] == 0
-		&& buffer[10] == 0
-		&& buffer[11] == 3
-		&& buffer[12] == 1
-		&& buffer[13] == 3)
-	{
-		*next = 15;
-		return true;
-	}
-
-	if ((buffer[0] == 0 || buffer[0] == 524288)
-		&& (buffer[1] == 0 || buffer[1] == 524288)
-		&& (buffer[2] == 0 || buffer[2] == 65536)
-		&& (buffer[3] == 9 || buffer[3] == 65536)
-		&& (buffer[4] == 2 || buffer[4] == 257)
-		&& buffer[5] == 11
-		&& buffer[11] == 0
-		&& buffer[12] == 0
-		&& buffer[13] == 3)
-	{
-		*next = 17;
-		return true;
-	}
-
-	return false;
-}
-
-bool R603Handler::looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
-{
-	if ((buffer[0] == 262144 || buffer[0] == 0)
-		&& (buffer[1] == 524288 || buffer[1] == 0)
-		&& (buffer[2] == 524288 || buffer[2] == 0)
-		&& buffer[3] == 131072
-		&& buffer[4] == 16842752
-		&& buffer[5] == 16843009)
-	{
-		*next = 9;
-		return true;
-	}
-
-	return false;
-}
-
-void R603Handler::find_panel_icon(std::ifstream & ifs)
-{
-	ifs.seekg(R603_START, std::ios::beg);
-}
+const auto VERSION_INFO = 0x24;
 
 static DataType find_data(std::ifstream & ifs, int byte_offset, std::shared_ptr<VersionHandler> handler)
 {
@@ -224,36 +66,19 @@ static DataType find_data(std::ifstream & ifs, std::shared_ptr<VersionHandler> h
 	return result;
 }
 
-} // namespace ismsnoop
-
-using namespace ismsnoop;
-
-struct ISMSnoopInstrument
-{
-	InstrumentImage panel_icon;
-	std::string name;
-};
-
-void ismsnoop_library_version(int * major, int * minor, int * patch, int * tweak)
-{
-	if(major) *major = PROJECT_VERSION_MAJOR;
-	if(minor) *minor = PROJECT_VERSION_MINOR;
-	if(patch) *patch = PROJECT_VERSION_PATCH;
-	if(tweak) *tweak = PROJECT_VERSION_TWEAK;
-}
-
 FileVersion read_file_version(std::ifstream & ifs)
 {
 	ifs.seekg(VERSION_INFO, std::ios::beg);
 
-	char version_byte;
+	uint32_t version_bytes;
 
-	ifs.get(version_byte);
+	ifs.read((char*)(&version_bytes), sizeof(version_bytes));
 
-	switch (version_byte)
+	switch (version_bytes)
 	{
-		case 0x35: return FileVersion::R600;
-		case 0x36: return FileVersion::R603;
+		case 825242929: return FileVersion::R600;
+		case 3811128881: return FileVersion::R603;
+		case 3827905843: return FileVersion::R611;
 		default: return FileVersion::Unknown;
 	}
 }
@@ -293,19 +118,20 @@ InstrumentImage read_panel_icon(std::ifstream & ifs)
 	return result;
 }
 
-std::shared_ptr<VersionHandler> make_handler(FileVersion file_version)
+} // namespace ismsnoop
+
+struct ISMSnoopInstrument
 {
-	switch (file_version)
-	{
-		case FileVersion::R600:
-		{
-			return std::shared_ptr<VersionHandler>(new R600Handler);
-		}
-		default:
-		{
-			return std::shared_ptr<VersionHandler>(new LatestHandler);
-		}
-	}
+	ismsnoop::InstrumentImage panel_icon;
+	std::string name;
+};
+
+void ismsnoop_library_version(int * major, int * minor, int * patch, int * tweak)
+{
+	if(major) *major = PROJECT_VERSION_MAJOR;
+	if(minor) *minor = PROJECT_VERSION_MINOR;
+	if(patch) *patch = PROJECT_VERSION_PATCH;
+	if(tweak) *tweak = PROJECT_VERSION_TWEAK;
 }
 
 ISMSnoopInstrument * ismsnoop_open(const char * path)
@@ -321,12 +147,12 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 
 	const auto file_length = ifs.tellg();
 
-	if(file_length < VERSION_INFO)
+	if(file_length < ismsnoop::VERSION_INFO)
 	{
 		return nullptr;
 	}
 
-	const auto handler = make_handler(read_file_version(ifs));
+	const auto handler = make_handler(ismsnoop::read_file_version(ifs));
 
 	handler->find_panel_icon(ifs);
 
@@ -349,18 +175,18 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 	{
 		ifs.seekg(7, std::ios::cur);
 
-		result->panel_icon = read_panel_icon(ifs);
+		result->panel_icon = ismsnoop::read_panel_icon(ifs);
 	}
 
-	DataType data_type;
+	ismsnoop::DataType data_type;
 
 	//while (!ifs.eof())
-	while ((data_type = find_data(ifs, handler)) != DataType::None)
+	while ((data_type = find_data(ifs, handler)) != ismsnoop::DataType::None)
 	{
 		//data_type = find_data(ifs);
 		switch (data_type)
 		{
-			case DataType::BackgroundImage:
+			case ismsnoop::DataType::BackgroundImage:
 			{
 				uint32_t file_name_length;
 
@@ -382,7 +208,7 @@ ISMSnoopInstrument * ismsnoop_open(const char * path)
 				break;
 			}
 
-			case DataType::InfoText:
+			case ismsnoop::DataType::InfoText:
 			{
 				uint32_t name_length;
 
