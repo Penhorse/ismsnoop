@@ -43,8 +43,6 @@ bool R603Handler::looks_like_a_background_image(const std::vector<uint32_t> & bu
 bool R603Handler::looks_like_the_info_text(const std::vector<uint32_t> & buffer, int * next)
 {
 	if ((buffer[0] == 262144 || buffer[0] == 0)
-		&& (buffer[1] == 524288 || buffer[1] == 0)
-		&& (buffer[2] == 524288 || buffer[2] == 0)
 		&& buffer[3] == 131072
 		&& buffer[4] == 16842752
 		&& buffer[5] == 16843009)

@@ -82,6 +82,7 @@ FileVersion read_file_version(std::ifstream & ifs)
 			return FileVersion::R600;
 		}
 		case 3811128881:
+		case 3811128114:
 		{
 			return FileVersion::R603;
 		}

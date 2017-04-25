@@ -146,6 +146,7 @@ SCENARIO("R600 instruments can be read correctly", "[r600]")
 	}
 }
 
+/*
 SCENARIO("Instruments with no background image can be read correctly", "[!mayfail]")
 {
 	WHEN("the library is loaded")
@@ -164,6 +165,7 @@ SCENARIO("Instruments with no background image can be read correctly", "[!mayfai
 		}
 	}
 }
+*/
 
 SCENARIO("R603 instruments can be read correctly", "[r603]")
 {
@@ -219,6 +221,154 @@ SCENARIO("R603 instruments can be read correctly", "[r603]")
 			AND_THEN("we can retrieve the name")
 			{
 				REQUIRE(ism.get_name() == "Metaverb Red");
+			}
+		}
+	}
+}
+
+SCENARIO("R611 instruments can be read correctly", "[611]")
+{
+	WHEN("the library is loaded")
+	{
+		ISMSnoopLib lib;
+		ISMSnoop ismsnoop(lib);
+
+		THEN("'Maxted Dyn Rectifier _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Maxted Dyn Rectifier _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Maxted (M)");
+			}
+		}
+
+		AND_THEN("'Maxted Dyn Rectifier _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Maxted Dyn Rectifier _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Maxted (S)");
+			}
+		}
+
+		AND_THEN("'Royal Feedback Sat _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Royal Feedback Sat _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Royal (M)");
+			}
+		}
+
+		AND_THEN("'Royal Feedback Sat _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Royal Feedback Sat _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Royal (S)");
+			}
+		}
+
+		AND_THEN("'Kerans LP4 Dyn Shaper _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Kerans LP4 Dyn Shaper _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Kerans (M)");
+			}
+		}
+
+		AND_THEN("'Kerans LP4 Dyn Shaper _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Kerans LP4 Dyn Shaper _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Kerans (S)");
+			}
+		}
+
+		AND_THEN("'Laing LP3 Dyn Shaper _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Laing LP3 Dyn Shaper _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Laing (M)");
+			}
+		}
+
+		AND_THEN("'Laing LP3 Dyn Shaper _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Laing LP3 Dyn Shaper _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Laing (S)");
+			}
+		}
+
+		AND_THEN("'Margot Multicomb _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Margot Multicomb _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Margot (M)");
+			}
+		}
+
+		AND_THEN("'Margot Multicomb _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Margot Multicomb _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Margot (S)");
+			}
+		}
+
+		AND_THEN("'Wilder LP2 Dyn Shaper _M_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Wilder LP2 Dyn Shaper _M_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Wilder (M)");
+			}
+		}
+
+		AND_THEN("'Wilder LP2 Dyn Shaper _S_.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Wilder LP2 Dyn Shaper _S_.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Wilder (S)");
+			}
+		}
+	}
+}
+
+SCENARIO("Bezyeah Clock should load correctly", "[bezyeah][misc]")
+{
+	WHEN("the library is loaded")
+	{
+		ISMSnoopLib lib;
+		ISMSnoop ismsnoop(lib);
+
+		THEN("'INT-Bezyeah_Clock.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/INT-Bezyeah_Clock.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Bezyeah Clock");
 			}
 		}
 	}
