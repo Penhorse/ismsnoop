@@ -11,7 +11,12 @@ list(APPEND
 
 list(APPEND
 	src
+	handlers
 	ismsnoop
+	r600_handler
+	r603_handler
+	r611_handler
+	version_handler
 )
 
 foreach(x ${headers_public})

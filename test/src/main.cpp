@@ -12,288 +12,214 @@ using Sig_ismsnoop_get_panel_icon_size = void(ISMSnoopInstrument*, int*, int*, i
 using Sig_ismsnoop_get_panel_icon_bytes = void(ISMSnoopInstrument*, char*);
 using Sig_ismsnoop_get_name = void(ISMSnoopInstrument*, char*, int*);
 
-SCENARIO("ism files can be opened and information can be retrieved", "[test]")
+struct ISMSnoopLib
 {
-	rtw::DynamicLibrary lib_ismsnoop(rtw::dylib::get_filename("ismsnoop"));
+	ISMSnoopLib();
 
+	std::shared_ptr<rtw::DynamicLibrary> lib;
+};
+
+ISMSnoopLib::ISMSnoopLib()
+	: lib(std::make_shared<rtw::DynamicLibrary>(rtw::dylib::get_filename("ismsnoop")))
+{
+	REQUIRE(lib->load());
+}
+
+struct ISMSnoop
+{
+	ISMSnoop(const ISMSnoopLib & lib);
+
+	std::function<Sig_ismsnoop_open> open;
+	std::function<Sig_ismsnoop_close> close;
+	std::function<Sig_ismsnoop_get_panel_icon_size> get_panel_icon_size;
+	std::function<Sig_ismsnoop_get_panel_icon_bytes> get_panel_icon_bytes;
+	std::function<Sig_ismsnoop_get_name> get_name;
+};
+
+ISMSnoop::ISMSnoop(const ISMSnoopLib & lib)
+	: open(lib.lib->get_function<Sig_ismsnoop_open>("ismsnoop_open"))
+	, close(lib.lib->get_function<Sig_ismsnoop_close>("ismsnoop_close"))
+	, get_panel_icon_size(lib.lib->get_function<Sig_ismsnoop_get_panel_icon_size>("ismsnoop_get_panel_icon_size"))
+	, get_panel_icon_bytes(lib.lib->get_function<Sig_ismsnoop_get_panel_icon_bytes>("ismsnoop_get_panel_icon_bytes"))
+	, get_name(lib.lib->get_function<Sig_ismsnoop_get_name>("ismsnoop_get_name"))
+{
+	REQUIRE(open);
+	REQUIRE(close);
+	REQUIRE(get_panel_icon_size);
+	REQUIRE(get_panel_icon_bytes);
+	REQUIRE(get_name);
+}
+
+class Instrument
+{
+public:
+	Instrument(const ISMSnoop & ismsnoop, const std::string & path);
+	~Instrument();
+
+	std::string get_name() const;
+
+private:
+
+	const ISMSnoop * ismsnoop_;
+	ISMSnoopInstrument * instrument_;
+};
+
+Instrument::Instrument(const ISMSnoop & ismsnoop, const std::string & path)
+	: ismsnoop_(&ismsnoop)
+	, instrument_(ismsnoop_->open(path.c_str()))
+{
+	REQUIRE(instrument_);
+}
+
+Instrument::~Instrument()
+{
+	ismsnoop_->close(instrument_);
+}
+
+std::string Instrument::get_name() const
+{
+	int length;
+
+	ismsnoop_->get_name(instrument_, nullptr, &length);
+
+	const auto c_name = new char[length + 1];
+	
+	ismsnoop_->get_name(instrument_, c_name, &length);
+
+	std::string result(c_name);
+
+	delete[] c_name;
+
+	return result;
+}
+
+SCENARIO("the library can be loaded", "[library]")
+{
+	THEN("the library can be opened")
+	{
+		ISMSnoopLib lib;
+
+		AND_THEN("all functions can be retrieved")
+		{
+			ISMSnoop ismsnoop(lib);
+		}
+	}
+}
+
+SCENARIO("R600 instruments can be read correctly", "[r600]")
+{
 	WHEN("the library is loaded")
 	{
-		REQUIRE(lib_ismsnoop.load());
+		ISMSnoopLib lib;
+		ISMSnoop ismsnoop(lib);
 
-		THEN("all the functions can be retrieved")
+		THEN("'1 In 2 Out Switch.ism' can be opened")
 		{
-			const auto ismsnoop_open = lib_ismsnoop.get_function<Sig_ismsnoop_open>("ismsnoop_open");
-			const auto ismsnoop_close = lib_ismsnoop.get_function<Sig_ismsnoop_close>("ismsnoop_close");
-			const auto ismsnoop_get_panel_icon_size = lib_ismsnoop.get_function<Sig_ismsnoop_get_panel_icon_size>("ismsnoop_get_panel_icon_size");
-			const auto ismsnoop_get_panel_icon_bytes = lib_ismsnoop.get_function<Sig_ismsnoop_get_panel_icon_bytes>("ismsnoop_get_panel_icon_bytes");
-			const auto ismsnoop_get_name = lib_ismsnoop.get_function<Sig_ismsnoop_get_name>("ismsnoop_get_name");
+			Instrument ism(ismsnoop, "isms/1 In 2 Out Switch.ism");
+		}
 
-			REQUIRE(ismsnoop_open);
-			REQUIRE(ismsnoop_close);
-			REQUIRE(ismsnoop_get_panel_icon_size);
-			REQUIRE(ismsnoop_get_panel_icon_bytes);
-			REQUIRE(ismsnoop_get_name);
-			
-			/*
-			AND_WHEN("we try to open '1 In 2 Out Switch.ism'")
+		AND_THEN("'Acid Filter.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Acid Filter.ism");
+		}
+
+		AND_THEN("'Thrasher v1.1.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Thrasher v1.1.ism");
+		}
+
+		AND_THEN("'OSC-Bargain Pulse.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/OSC-Bargain Pulse.ism");
+		}
+
+		AND_THEN("'Saturator.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Saturator.ism");
+
+			AND_THEN("we can retrieve the name")
 			{
-				const auto ism_test = ismsnoop_open("isms/1 In 2 Out Switch.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'Acid Filter.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Acid Filter.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'Thrasher v1.1.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Thrasher v1.1.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'OSC-Bargain Pulse.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/OSC-Bargain Pulse.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'Saturator.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Saturator.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-					
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "Saturator");
-					
-				}
-
-				ismsnoop_close(ism_test);
-			}
-			
-
-			AND_WHEN("we try to open 'Tiny Ring Mod.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Tiny Ring Mod.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "Tiny Ring Mod");
-
-				}
-
-				ismsnoop_close(ism_test);
-			}
-			*/
-			AND_WHEN("we try to open 'Fold.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Fold.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "Folds");
-
-				}
-
-				ismsnoop_close(ism_test);
-			}
-			AND_WHEN("we try to open 'SA MiniVerb v.1.2a.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/SA MiniVerb v.1.2a.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "SA MiniVerb");
-
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'SA_MidSide_v.1.1.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/SA_MidSide_v.1.1.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "SA Mid/Side");
-
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-			AND_WHEN("we try to open 'BND v1.0.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/BND v1.0.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "BND");
-
-				}
-
-				ismsnoop_close(ism_test);
-			}
-
-
-			AND_WHEN("we try to open 'Metaverb Red.ism'")
-			{
-				const auto ism_test = ismsnoop_open("isms/Metaverb Red.ism");
-
-				THEN("it opens successfully")
-				{
-					REQUIRE(ism_test);
-				}
-
-				AND_THEN("we can retrieve the name")
-				{
-					int length;
-
-					ismsnoop_get_name(ism_test, nullptr, &length);
-
-					const auto c_name = new char[length + 1];
-
-					ismsnoop_get_name(ism_test, c_name, &length);
-
-					std::string name(c_name);
-
-					delete[] c_name;
-
-					REQUIRE(name == "Metaverb Red");
-
-				}
-
-				ismsnoop_close(ism_test);
+				REQUIRE(ism.get_name() == "Saturator");
 			}
 		}
-		
+
+	}
+}
+
+SCENARIO("Instruments with no background image can be read correctly", "[!mayfail]")
+{
+	WHEN("the library is loaded")
+	{
+		ISMSnoopLib lib;
+		ISMSnoop ismsnoop(lib);
+
+		THEN("'Tiny Ring Mod.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Tiny Ring Mod.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Tiny Ring Mod");
+			}
+		}
+	}
+}
+
+SCENARIO("R603 instruments can be read correctly", "[r603]")
+{
+	WHEN("the library is loaded")
+	{
+		ISMSnoopLib lib;
+		ISMSnoop ismsnoop(lib);
+
+		THEN("'Fold.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Fold.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Folds");
+			}
+		}
+
+		AND_THEN("'SA MiniVerb v.1.2a.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/SA MiniVerb v.1.2a.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "SA MiniVerb");
+			}
+		}
+
+		AND_THEN("'SA_MidSide_v.1.1.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/SA_MidSide_v.1.1.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "SA Mid/Side");
+			}
+		}
+
+		AND_THEN("'BND v1.0.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/BND v1.0.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "BND");
+			}
+		}
+
+		AND_THEN("'Metaverb Red.ism' can be opened")
+		{
+			Instrument ism(ismsnoop, "isms/Metaverb Red.ism");
+
+			AND_THEN("we can retrieve the name")
+			{
+				REQUIRE(ism.get_name() == "Metaverb Red");
+			}
+		}
 	}
 }

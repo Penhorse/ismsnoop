@@ -76,10 +76,23 @@ FileVersion read_file_version(std::ifstream & ifs)
 
 	switch (version_bytes)
 	{
-		case 825242929: return FileVersion::R600;
-		case 3811128881: return FileVersion::R603;
-		case 3827905843: return FileVersion::R611;
-		default: return FileVersion::Unknown;
+		case 825242929:
+		case 909260081:
+		{
+			return FileVersion::R600;
+		}
+		case 3811128881:
+		{
+			return FileVersion::R603;
+		}
+		case 3827905843:
+		{
+			return FileVersion::R611;
+		}
+		default:
+		{
+			return FileVersion::Unknown;
+		}
 	}
 }
 
