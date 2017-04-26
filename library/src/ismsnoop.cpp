@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
 
 namespace ismsnoop
@@ -74,27 +75,18 @@ FileVersion read_file_version(std::ifstream & ifs)
 
 	ifs.read((char*)(&version_bytes), sizeof(version_bytes));
 
-	switch (version_bytes)
+	std::map<uint32_t, FileVersion> table =
 	{
-		case 825242929:
-		case 909260081:
-		{
-			return FileVersion::R600;
-		}
-		case 3811128881:
-		case 3811128114:
-		{
-			return FileVersion::R603;
-		}
-		case 3827905843:
-		{
-			return FileVersion::R611;
-		}
-		default:
-		{
-			return FileVersion::Unknown;
-		}
-	}
+		{ 825242929 , FileVersion::R600 },
+		{ 909260081 , FileVersion::R600 },
+		{ 3811128881, FileVersion::R603 },
+		{ 3811128114, FileVersion::R603 },
+		{ 3827905843, FileVersion::R611 },
+	};
+
+	const auto version = table.find(version_bytes);
+
+	return version != table.end() ? version->second : FileVersion::Unknown;
 }
 
 InstrumentImage read_panel_icon(std::ifstream & ifs)

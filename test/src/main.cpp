@@ -22,7 +22,7 @@ struct ISMSnoopLib
 ISMSnoopLib::ISMSnoopLib()
 	: lib(std::make_shared<rtw::DynamicLibrary>(rtw::dylib::get_filename("ismsnoop")))
 {
-	REQUIRE(lib->load());
+	REQUIRE(lib->load({ "." }));
 }
 
 struct ISMSnoop
